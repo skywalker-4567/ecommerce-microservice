@@ -4,25 +4,29 @@ server:
 spring:
   application:
     name: config-server
+
   profiles:
-    active: native
+    active: ${SPRING_PROFILE:native}
+
   cloud:
     config:
       server:
         native:
-          search-locations: classpath:/config
+          search-locations: ${CONFIG_LOCATION:classpath:/config}
 
 eureka:
   instance:
     prefer-ip-address: true
+
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_SERVER:http://eureka-server:8761/eureka/}
 
 management:
   tracing:
     sampling:
       probability: 1.0
+
   zipkin:
     tracing:
-      endpoint: http://zipkin:9411/api/v2/spans
+      endpoint: ${ZIPKIN_URL:http://zipkin:9411/api/v2/spans}

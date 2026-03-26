@@ -4,12 +4,15 @@ server:
 spring:
   application:
     name: user-service
+
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:${CONFIG_SERVER_URL:http://config-server:8888}
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/user_db
-    username: postgres
-    password: mlengineerfr
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:user_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:}
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -18,20 +21,23 @@ spring:
 eureka:
   instance:
     prefer-ip-address: true
-    ip-address: 127.0.0.1
+    # Better removed, fallback added
+    ip-address: ${EUREKA_IP:user-service}
+
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_SERVER:http://eureka-server:8761/eureka/}
 
 app:
   jwt:
-    secret: bkgfhuh58iu8threttht5iut8uihguirht585uihguithg58u8hgugh5thrjhi4
-    expiration: 86400000
+    secret: ${JWT_SECRET:default_jwt_secret}
+    expiration: ${JWT_EXPIRATION:86400000}
 
 management:
   tracing:
     sampling:
       probability: 1.0
+
   zipkin:
     tracing:
-      endpoint: http://zipkin:9411/api/v2/spans
+      endpoint: ${ZIPKIN_URL:http://zipkin:9411/api/v2/spans}

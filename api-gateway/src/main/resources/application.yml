@@ -4,14 +4,17 @@ server:
 spring:
   application:
     name: api-gateway
+
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:${CONFIG_SERVER_URL:http://config-server:8888}
+
   cloud:
     gateway:
       discovery:
         locator:
           enabled: true
           lower-case-service-id: true
+
       routes:
         - id: user-service
           uri: lb://user-service
@@ -51,23 +54,25 @@ spring:
 eureka:
   instance:
     prefer-ip-address: true
-    ip-address: 127.0.0.1
+    # remove if possible, fallback added
+    ip-address: ${EUREKA_IP:api-gateway}
+
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_SERVER:http://eureka-server:8761/eureka/}
 
 app:
   jwt:
-    secret: bkgfhuh58iu8threttht5iut8uihguirht585uihguithg58u8hgugh5thrjhi4
-
+    secret: ${JWT_SECRET:default_jwt_secret}
 
 management:
   tracing:
     sampling:
       probability: 1.0
+
   zipkin:
     tracing:
-      endpoint: http://zipkin:9411/api/v2/spans
+      endpoint: ${ZIPKIN_URL:http://zipkin:9411/api/v2/spans}
 
 logging:
   level:

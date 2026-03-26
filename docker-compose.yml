@@ -1,13 +1,31 @@
 version: '3.8'
 
+x-common-env: &common-env
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_USERNAME: ${DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD}
+
+  RABBIT_HOST: rabbitmq
+  RABBIT_PORT: 5672
+  RABBIT_USERNAME: ${RABBIT_USERNAME}
+  RABBIT_PASSWORD: ${RABBIT_PASSWORD}
+
+  EUREKA_SERVER: http://eureka-server:8761/eureka/
+  CONFIG_SERVER_URL: http://config-server:8888
+  ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_EXPIRATION: ${JWT_EXPIRATION}
+
 services:
 
   postgres:
     image: postgres:16
     container_name: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: your_password
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -17,6 +35,9 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -32,104 +53,97 @@ services:
     container_name: eureka-server
     ports:
       - "8761:8761"
+    environment:
+      <<: *common-env
     depends_on:
-      - postgres
+      - zipkin
 
   config-server:
     build: ./config-server
     container_name: config-server
     ports:
       - "8888:8888"
+    environment:
+      <<: *common-env
     depends_on:
       - eureka-server
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
 
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
     ports:
       - "8080:8080"
+    environment:
+      <<: *common-env
     depends_on:
       - eureka-server
       - config-server
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
 
   user-service:
     build: ./user-service
     container_name: user-service
     ports:
       - "8081:8081"
+    environment:
+      <<: *common-env
+      DB_NAME: user_db
     depends_on:
       - postgres
       - eureka-server
       - config-server
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/user_db
 
   product-service:
     build: ./product-service
     container_name: product-service
     ports:
       - "8082:8082"
+    environment:
+      <<: *common-env
+      DB_NAME: product_db
     depends_on:
       - postgres
       - eureka-server
       - config-server
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/product_db
 
   order-service:
     build: ./order-service
     container_name: order-service
     ports:
       - "8083:8083"
+    environment:
+      <<: *common-env
+      DB_NAME: order_db
     depends_on:
       - postgres
+      - rabbitmq
       - eureka-server
       - config-server
-      - rabbitmq
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
-      SPRING_RABBITMQ_HOST: rabbitmq
 
   payment-service:
     build: ./payment-service
     container_name: payment-service
     ports:
       - "8084:8084"
+    environment:
+      <<: *common-env
+      DB_NAME: payment_db
     depends_on:
       - postgres
+      - rabbitmq
       - eureka-server
       - config-server
-      - rabbitmq
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
-      SPRING_RABBITMQ_HOST: rabbitmq
 
   notification-service:
     build: ./notification-service
     container_name: notification-service
     ports:
       - "8085:8085"
+    environment:
+      <<: *common-env
     depends_on:
+      - rabbitmq
       - eureka-server
       - config-server
-      - rabbitmq
-    environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      SPRING_RABBITMQ_HOST: rabbitmq
 
 volumes:
   postgres_data:
